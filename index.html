@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trạm Voice Studio</title>
+<meta name="description" content="Tạo giọng nói AI bằng API key ElevenLabs của bạn. Chạy trên máy tính, Mac, iPhone, Android.">
+<meta name="theme-color" content="#0b3b3a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trạm Voice">
+<style>
+  :root {
+    --bg: #eef5f3; --card: #ffffff; --ink: #12302e; --muted: #557370; --line: #d3e3e0;
+    --brand: #0f7f77; --brand-dark: #0b3b3a; --brand-soft: #e1f2ef; --amber: #ffb547; --amber-soft: #fff3dc;
+    --danger: #b4441b; --ok: #12805c; --radius: 16px;
+    --shadow: 0 1px 2px rgba(11,59,58,.06), 0 8px 24px rgba(11,59,58,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1918; --card: #122523; --ink: #e5f2ef; --muted: #93b1ad; --line: #24403d;
+      --brand: #2bb3a7; --brand-dark: #0b3b3a; --brand-soft: #173733; --amber-soft: #3a2f17; --danger: #ff8a65; --ok: #4fd1a5;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 "Be Vietnam Pro", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  header {
+    background: linear-gradient(135deg, #0b3b3a, #11756e); color: #fff;
+    padding: calc(18px + env(safe-area-inset-top)) 16px 22px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img { width: 52px; height: 52px; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  .brand h1 { margin: 0; font-size: 24px; letter-spacing: -.3px; }
+  .brand p { margin: 2px 0 0; opacity: .85; font-size: 14px; }
+  main { padding: 16px; display: grid; gap: 14px; }
+  .card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+  .card h2 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .step { width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 14px; display: inline-grid; place-items: center; flex: none; }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 10px 0 4px; font-weight: 600; }
+  input[type=text], input[type=password], input[type=search], select, textarea {
+    width: 100%; font: inherit; font-size: 16px; /* 16px: iPhone không tự phóng to khi gõ */
+    color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 12px;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+  input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  textarea { min-height: 170px; resize: vertical; line-height: 1.6; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row > .grow { flex: 1 1 160px; min-width: 0; }
+  button, .btn {
+    font: inherit; font-size: 15px; font-weight: 700; border-radius: 12px; padding: 10px 14px; min-height: 44px;
+    border: 1.5px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; touch-action: manipulation;
+  }
+  button:hover, .btn:hover { border-color: var(--brand); }
+  button:disabled { opacity: .5; cursor: default; }
+  .primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .primary:hover { filter: brightness(1.08); }
+  .ghost { background: transparent; border-color: transparent; color: var(--brand); padding: 8px 10px; }
+  .danger { color: var(--danger); }
+  .hint { font-size: 13.5px; color: var(--muted); margin: 8px 0 0; }
+  .switch { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 15px; cursor: pointer; }
+  .switch input { width: 22px; height: 22px; accent-color: var(--brand); }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 0 12px; }
+  @media (min-width: 640px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .speed { display: flex; align-items: center; gap: 12px; }
+  .speed input { flex: 1; accent-color: var(--brand); height: 32px; }
+  .speed output { min-width: 64px; font-weight: 700; text-align: right; }
+  .counter { font-size: 13px; color: var(--muted); text-align: right; margin-top: 4px; }
+  .counter.over { color: var(--danger); font-weight: 700; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 14px; padding: 6px 10px; min-height: 36px; border-radius: 999px; background: var(--brand-soft); border-color: transparent; color: var(--ink); font-weight: 600; }
+  /* Thanh nút Tạo giọng dính đáy màn hình, dễ bấm bằng ngón cái trên điện thoại */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; background: color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
+  .dock .wrap { display: flex; gap: 10px; align-items: center; }
+  .dock .primary { flex: 1; font-size: 17px; min-height: 52px; }
+  .status { font-size: 14px; color: var(--muted); }
+  .status.error { color: var(--danger); font-weight: 600; }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .result { display: grid; gap: 10px; }
+  .take { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
+  .take audio { width: 100%; }
+  .take .meta { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { text-align: center; color: var(--muted); padding: 18px 8px; font-size: 14px; }
+  .meter { height: 14px; background: var(--brand-soft); border-radius: 999px; overflow: hidden; margin: 10px 0; }
+  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--amber), var(--danger)); transition: width .08s; }
+  .rec { background: var(--danger); border-color: var(--danger); color: #fff; }
+  details summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: "＋"; color: var(--brand); font-size: 20px; }
+  details[open] summary::after { content: "－"; }
+  /* Hộp thoại dạng tấm trượt từ dưới lên trên điện thoại */
+  dialog { border: none; padding: 0; border-radius: 20px; width: min(680px, calc(100vw - 24px)); max-height: 86vh; background: var(--card); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  dialog::backdrop { background: rgba(5,20,19,.55); }
+  .dlg-head { position: sticky; top: 0; background: var(--card); padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; z-index: 1; }
+  .dlg-head h3 { margin: 0; font-size: 17px; }
+  .dlg-body { padding: 14px 16px; overflow: auto; }
+  .dlg-foot { position: sticky; bottom: 0; background: var(--card); padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+  .tag-group h4 { margin: 14px 0 6px; font-size: 14px; color: var(--muted); }
+  .sent { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .sent p { margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .preview { white-space: pre-wrap; background: var(--bg); border-radius: 12px; padding: 12px; font-size: 15px; }
+  .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--brand-dark); color: #fff;
+    padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 20; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+  .toast.show { opacity: 1; }
+  footer { text-align: center; font-size: 12.5px; color: var(--muted); padding: 8px 16px 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap brand">
+    <img src="icon-192.png" alt="">
+    <div>
+      <h1>Trạm Voice Studio</h1>
+      <p>Tạo giọng nói AI · MP3 · Giọng riêng của bạn</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 1. API key -->
+  <section class="card" id="keys">
+    <h2><span class="step">1</span> API key ElevenLabs</h2>
+    <div id="accountRow" class="row">
+      <select id="account" class="grow" aria-label="Tài khoản đang dùng"></select>
+      <button id="renameKey" class="ghost">Đổi tên</button>
+      <button id="deleteKey" class="ghost danger">Xóa</button>
+    </div>
+    <details id="addBox">
+      <summary style="margin-top:12px">Thêm key mới</summary>
+      <label for="keyName">Tên gợi nhớ</label>
+      <input id="keyName" type="text" placeholder="Ví dụ: Tài khoản chính" autocomplete="off">
+      <label for="keyValue">API key</label>
+      <div class="row">
+        <input id="keyValue" class="grow" type="password" placeholder="sk_..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button id="saveKey" class="primary">Lưu key</button>
+      </div>
+      <p class="hint">Lấy key: elevenlabs.io → Developers → API Keys → Create. Bật quyền Text to Speech, Voices và User: Read. Key chỉ lưu trong trình duyệt này, không gửi đi đâu ngoài ElevenLabs.</p>
+    </details>
+    <label class="switch"><input id="autoSwitch" type="checkbox" checked> Tự chuyển key khi ElevenLabs báo hết quota</label>
+    <div class="row" style="margin-top:12px">
+      <button id="loadVoices" class="primary">Kết nối · Tải giọng</button>
+      <button id="showCredits">Xem credit</button>
+    </div>
+  </section>
+
+  <!-- 2. Giọng & cách đọc -->
+  <section class="card">
+    <h2><span class="step">2</span> Chọn giọng và cách đọc</h2>
+    <label for="voiceSearch">Tìm giọng</label>
+    <input id="voiceSearch" type="search" placeholder="Tên hoặc đặc điểm: Roger, warm, kể chuyện..." autocomplete="off">
+    <label for="voice">Giọng</label>
+    <div class="row">
+      <select id="voice" class="grow"><option value="">Bấm "Kết nối · Tải giọng" trước</option></select>
+      <button id="previewVoice" title="Nghe thử giọng mẫu">▶ Nghe mẫu</button>
+    </div>
+    <div class="grid2">
+      <div>
+        <label for="model">Model</label>
+        <select id="model"></select>
+      </div>
+      <div>
+        <label for="emotion">Biểu cảm</label>
+        <select id="emotion"></select>
+      </div>
+      <div>
+        <label for="pause">Ngắt nghỉ</label>
+        <select id="pause"></select>
+      </div>
+      <div>
+        <label for="speed">Tốc độ đọc</label>
+        <div class="speed"><input id="speed" type="range" min="0.7" max="1.2" step="0.01" value="1"><output id="speedOut">1.00x</output></div>
+      </div>
+    </div>
+    <p class="hint" id="modelHint">Biểu cảm và thẻ [ ] cần Eleven v3. Eleven v3 chỉ đọc ở tốc độ 1.00x.</p>
+  </section>
+
+  <!-- 3. Văn bản -->
+  <section class="card">
+    <h2><span class="step">3</span> Văn bản cần đọc</h2>
+    <textarea id="text" placeholder="Nhập hoặc dán văn bản...">Xin chào! Đây là giọng nói được tạo bằng Trạm Voice Studio.</textarea>
+    <div class="counter" id="counter"></div>
+    <div class="chips">
+      <button class="chip" id="openTags">Bảng thẻ [ ]</button>
+      <button class="chip" id="annotate">Gắn thẻ từng câu</button>
+      <button class="chip" id="previewScript">Xem trước cách đọc</button>
+      <button class="chip" id="undo">Hoàn tác</button>
+    </div>
+  </section>
+
+  <!-- 4. Kết quả -->
+  <section class="card">
+    <h2><span class="step">4</span> Kết quả</h2>
+    <div id="results" class="result"><div class="empty">Chưa có bản đọc nào. Bấm “Tạo giọng nói” ở dưới.</div></div>
+    <p class="hint">Mỗi lần tạo trừ credit trong tài khoản ElevenLabs của bạn. Bản đọc chỉ giữ tới khi đóng trang, hãy tải MP3 về.</p>
+  </section>
+
+  <!-- 5. Giọng riêng -->
+  <section class="card">
+    <details id="cloneBox">
+      <summary>Tạo giọng riêng từ giọng của bạn</summary>
+      <label for="cloneName">Tên giọng</label>
+      <input id="cloneName" type="text" value="Giọng của tôi">
+      <p class="hint">Đọc to đoạn dưới đây trong phòng yên tĩnh, 30–60 giây, micro cách miệng 15–20 cm:</p>
+      <p class="preview">Xin chào, đây là bản thu giọng nói của tôi. Hôm nay là một ngày thật đẹp và tôi cảm thấy rất vui khi được chia sẻ câu chuyện này. Tôi sẽ nói chậm, rõ ràng, với những khoảng nghỉ tự nhiên. Mỗi câu nói mang một sắc thái riêng: vui vẻ, bình tĩnh, ngạc nhiên và ấm áp.</p>
+      <div class="meter"><i id="meter"></i></div>
+      <div class="row">
+        <button id="recBtn" class="rec">● Bắt đầu thu</button>
+        <span id="recTime" class="status">Sẵn sàng</span>
+      </div>
+      <audio id="recPlayback" controls hidden style="width:100%;margin-top:10px"></audio>
+      <label for="cloneFiles">Hoặc chọn file ghi âm có sẵn</label>
+      <input id="cloneFiles" type="file" accept="audio/*" multiple>
+      <label class="switch"><input id="cloneConsent" type="checkbox"> Tôi xác nhận đây là giọng của tôi hoặc tôi được phép sử dụng</label>
+      <div class="row" style="margin-top:12px"><button id="cloneBtn" class="primary">Tạo giọng riêng</button></div>
+      <p class="hint">Gói ElevenLabs miễn phí có thể không hỗ trợ tạo giọng riêng. Giọng riêng chỉ dùng được ở tài khoản đã tạo nó.</p>
+    </details>
+  </section>
+</main>
+
+<footer>Trạm Voice Studio là phần mềm độc lập, không thuộc ElevenLabs. Mở lại trang này bất cứ lúc nào: key vẫn được nhớ trên thiết bị.</footer>
+
+<div class="dock">
+  <div class="wrap">
+    <div class="status grow" id="status" style="flex:1 1 40%;min-width:0">Dán API key để bắt đầu.</div>
+    <button id="generate" class="primary" style="flex:1 1 55%">Tạo giọng nói</button>
+  </div>
+</div>
+
+<!-- Hộp thoại dùng chung -->
+<dialog id="dlg">
+  <div class="dlg-head"><h3 id="dlgTitle"></h3><button class="ghost" data-close>Đóng</button></div>
+  <div class="dlg-body" id="dlgBody"></div>
+  <div class="dlg-foot" id="dlgFoot" hidden></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script src="logic.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
