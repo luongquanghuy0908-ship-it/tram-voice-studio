@@ -11,8 +11,8 @@ Trang web tĩnh, trình duyệt gọi thẳng API ElevenLabs bằng key **của 
 
 ## Khác bản Windows
 - Không có "Cổng API cho AI khác" (trình duyệt không mở cổng được).
-- Thu âm giọng riêng dùng micro của trình duyệt (cần https).
+- Không có phần tạo giọng riêng (đã bỏ theo yêu cầu).
 
 ## Đưa lên mạng
-Phải chạy qua **https** (micro và cài app chỉ chạy trên https). Cách rẻ nhất: GitHub Pages, chép nguyên thư mục `web/` lên repo rồi bật Pages.
+Phải chạy qua **https** (cài app chỉ chạy trên https). Cách rẻ nhất: GitHub Pages, chép nguyên thư mục `web/` lên repo rồi bật Pages.
 Khách mở link → iPhone: Safari → Chia sẻ → **Thêm vào MH chính**; Android: Chrome → **Cài đặt ứng dụng**.

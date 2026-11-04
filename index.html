@@ -94,9 +94,6 @@
   .take audio { width: 100%; }
   .take .meta { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .empty { text-align: center; color: var(--muted); padding: 18px 8px; font-size: 14px; }
-  .meter { height: 14px; background: var(--brand-soft); border-radius: 999px; overflow: hidden; margin: 10px 0; }
-  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--amber), var(--danger)); transition: width .08s; }
-  .rec { background: var(--danger); border-color: var(--danger); color: #fff; }
   details summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; }
   details summary::-webkit-details-marker { display: none; }
   details summary::after { content: "＋"; color: var(--brand); font-size: 20px; }
@@ -126,7 +123,7 @@
     <img src="icon-192.png" alt="">
     <div>
       <h1>Trạm Voice Studio</h1>
-      <p>Tạo giọng nói AI · MP3 · Giọng riêng của bạn</p>
+      <p>Tạo giọng nói AI · Nghe ngay · Tải MP3</p>
     </div>
   </div>
 </header>
@@ -209,27 +206,6 @@
     <p class="hint">Mỗi lần tạo trừ credit trong tài khoản ElevenLabs của bạn. Bản đọc chỉ giữ tới khi đóng trang, hãy tải MP3 về.</p>
   </section>
 
-  <!-- 5. Giọng riêng -->
-  <section class="card">
-    <details id="cloneBox">
-      <summary>Tạo giọng riêng từ giọng của bạn</summary>
-      <label for="cloneName">Tên giọng</label>
-      <input id="cloneName" type="text" value="Giọng của tôi">
-      <p class="hint">Đọc to đoạn dưới đây trong phòng yên tĩnh, 30–60 giây, micro cách miệng 15–20 cm:</p>
-      <p class="preview">Xin chào, đây là bản thu giọng nói của tôi. Hôm nay là một ngày thật đẹp và tôi cảm thấy rất vui khi được chia sẻ câu chuyện này. Tôi sẽ nói chậm, rõ ràng, với những khoảng nghỉ tự nhiên. Mỗi câu nói mang một sắc thái riêng: vui vẻ, bình tĩnh, ngạc nhiên và ấm áp.</p>
-      <div class="meter"><i id="meter"></i></div>
-      <div class="row">
-        <button id="recBtn" class="rec">● Bắt đầu thu</button>
-        <span id="recTime" class="status">Sẵn sàng</span>
-      </div>
-      <audio id="recPlayback" controls hidden style="width:100%;margin-top:10px"></audio>
-      <label for="cloneFiles">Hoặc chọn file ghi âm có sẵn</label>
-      <input id="cloneFiles" type="file" accept="audio/*" multiple>
-      <label class="switch"><input id="cloneConsent" type="checkbox"> Tôi xác nhận đây là giọng của tôi hoặc tôi được phép sử dụng</label>
-      <div class="row" style="margin-top:12px"><button id="cloneBtn" class="primary">Tạo giọng riêng</button></div>
-      <p class="hint">Gói ElevenLabs miễn phí có thể không hỗ trợ tạo giọng riêng. Giọng riêng chỉ dùng được ở tài khoản đã tạo nó.</p>
-    </details>
-  </section>
 </main>
 
 <footer>Trạm Voice Studio là phần mềm độc lập, không thuộc ElevenLabs. Mở lại trang này bất cứ lúc nào: key vẫn được nhớ trên thiết bị.</footer>

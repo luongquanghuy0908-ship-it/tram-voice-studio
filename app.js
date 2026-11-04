@@ -114,13 +114,12 @@
     if (list.some((v) => v.voice_id === keep)) sel.value = keep;
     else if (store.get('voice') && list.some((v) => v.voice_id === store.get('voice'))) sel.value = store.get('voice');
   }
-  async function loadVoices(selectId) {
+  async function loadVoices() {
     const k = current(); if (!k) return toast('Hãy lưu một API key trước.');
     setStatus('Đang tải danh sách giọng…'); $('loadVoices').disabled = true;
     try {
       voices = (await (await request(k.key, '/v1/voices')).json()).voices || [];
       renderVoices();
-      if (selectId) $('voice').value = selectId;
       setStatus('Đã tải ' + voices.length + ' giọng của “' + k.name + '”.', 'ok');
     } catch (e) { setStatus(e.message, 'error'); }
     finally { $('loadVoices').disabled = false; }
@@ -258,69 +257,6 @@
       document.querySelector('#results').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { setStatus(e.message, 'error'); }
     finally { busy = false; $('generate').disabled = false; $('generate').textContent = 'Tạo giọng nói'; }
-  };
-
-  // ---------- 5. Giọng riêng (thu âm bằng micro của máy/điện thoại) ----------
-  let recorder, recChunks = [], recBlob = null, recStart = 0, recTimer, audioCtx, analyser, meterRaf, stream;
-  function pickMime() {
-    // Chrome/Android: webm; Safari iPhone/Mac: mp4
-    for (const t of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac']) if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
-    return '';
-  }
-  async function startRec() {
-    if (!navigator.mediaDevices || !window.MediaRecorder) return toast('Trình duyệt này không hỗ trợ thu âm. Hãy chọn file ghi âm có sẵn.');
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true } }); }
-    catch (e) { return toast('Chưa được phép dùng micro. Hãy cho phép micro trong cài đặt trình duyệt.'); }
-    const mime = pickMime(); recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); recChunks = [];
-    recorder.ondataavailable = (e) => e.data.size && recChunks.push(e.data);
-    recorder.onstop = () => {
-      recBlob = new Blob(recChunks, { type: recorder.mimeType || mime || 'audio/webm' });
-      $('recPlayback').src = URL.createObjectURL(recBlob); $('recPlayback').hidden = false;
-      stream.getTracks().forEach((t) => t.stop()); cancelAnimationFrame(meterRaf); $('meter').style.width = '0';
-      if (audioCtx) audioCtx.close();
-    };
-    recorder.start(); recStart = Date.now();
-    // Thanh mức âm để biết micro có nhận tiếng không
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser(); analyser.fftSize = 512; audioCtx.createMediaStreamSource(stream).connect(analyser);
-    const data = new Uint8Array(analyser.fftSize);
-    const draw = () => {
-      analyser.getByteTimeDomainData(data);
-      let peak = 0; for (const v of data) peak = Math.max(peak, Math.abs(v - 128) / 128);
-      $('meter').style.width = Math.min(100, peak * 160) + '%'; meterRaf = requestAnimationFrame(draw);
-    };
-    draw();
-    $('recBtn').textContent = '■ Dừng thu';
-    recTimer = setInterval(() => {
-      const s = Math.floor((Date.now() - recStart) / 1000);
-      $('recTime').textContent = 'Đang thu ' + String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-    }, 250);
-  }
-  function stopRec() {
-    clearInterval(recTimer); recorder.stop(); $('recBtn').textContent = '● Thu lại';
-    const s = Math.floor((Date.now() - recStart) / 1000);
-    $('recTime').textContent = 'Đã thu ' + s + ' giây' + (s < 20 ? ' · nên thu dài hơn (30–60 giây)' : '');
-  }
-  $('recBtn').onclick = () => (recorder && recorder.state === 'recording' ? stopRec() : startRec());
-
-  $('cloneBtn').onclick = async () => {
-    const k = current(); if (!k) return toast('Hãy lưu API key trước.');
-    const name = $('cloneName').value.trim(); if (!name) return toast('Hãy đặt tên giọng.');
-    const files = [...$('cloneFiles').files];
-    if (!files.length && !recBlob) return toast('Hãy thu âm hoặc chọn file ghi âm.');
-    if (!$('cloneConsent').checked) return toast('Hãy tích xác nhận quyền sử dụng giọng.');
-    if (files.some((f) => f.size > 20 * 1024 * 1024)) return toast('Mỗi file tối đa 20 MB.');
-    const form = new FormData(); form.append('name', name);
-    if (files.length) files.forEach((f) => form.append('files', f, f.name));
-    else form.append('files', recBlob, 'ban-thu.' + (recBlob.type.includes('mp4') || recBlob.type.includes('aac') ? 'm4a' : 'webm'));
-    $('cloneBtn').disabled = true; setStatus('Đang gửi bản thu lên ElevenLabs…');
-    try {
-      const r = await (await request(k.key, '/v1/voices/add', { method: 'POST', body: form })).json();
-      if (r.requires_verification) { setStatus('Đã gửi. ElevenLabs yêu cầu xác minh giọng trong tài khoản trước khi dùng.', 'ok'); return; }
-      $('voiceSearch').value = ''; await loadVoices(r.voice_id);
-      setStatus('Đã tạo giọng “' + name + '” và chọn sẵn. Nhập văn bản rồi bấm Tạo giọng nói.', 'ok');
-    } catch (e) { setStatus(e.message, 'error'); }
-    finally { $('cloneBtn').disabled = false; }
   };
 
   // ---------- Khởi động ----------
