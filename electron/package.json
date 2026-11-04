@@ -7,7 +7,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never"
+    "dist:mac": "electron-builder --mac zip --arm64 --x64 --publish never"
   },
   "devDependencies": {
     "electron": "33.2.1",
@@ -18,7 +18,6 @@
     "productName": "Trạm Voice Studio",
     "artifactName": "TramVoiceStudio-${version}-mac-${arch}.${ext}",
     "files": ["main.js", "app/**"],
-    "mac": { "category": "public.app-category.productivity", "icon": "app/icon-1024.png", "identity": null },
-    "dmg": { "title": "Trạm Voice Studio" }
+    "mac": { "category": "public.app-category.productivity", "icon": "app/icon-1024.png", "identity": null }
   }
 }

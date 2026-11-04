@@ -1,4 +1,4 @@
-# Build app Android (.apk) và Mac (.dmg) trên máy chủ GitHub, rồi đăng lên mục Releases để tải.
+# Build app Android (.apk) và Mac (.zip) trên máy chủ GitHub, rồi đăng lên mục Releases để tải.
 # Chạy tay: tab Actions → "Build app" → Run workflow. Hoặc tự chạy mỗi lần đẩy code lên main.
 name: Build app
 
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - name: Build DMG
+      - name: Build app Mac (.zip)
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false" # chưa có chứng chỉ Apple -> không ký
         run: |
@@ -63,7 +63,7 @@ jobs:
           npm install
           npm run dist:mac
       - uses: actions/upload-artifact@v4
-        with: { name: mac, path: electron/dist/*.dmg }
+        with: { name: mac, path: electron/dist/*.zip }
 
   release:
     needs: [android, mac]
@@ -79,4 +79,4 @@ jobs:
           gh release create "v1.0.${{ github.run_number }}" out/* \
             --repo "${{ github.repository }}" \
             --title "Trạm Voice Studio 1.0.${{ github.run_number }}" \
-            --notes "Android: tải file .apk, mở để cài (cho phép cài từ nguồn không xác định). Mac: tải .dmg (arm64 cho chip M, x64 cho Intel), kéo vào Applications; lần đầu mở: chuột phải → Open, hoặc Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Vẫn mở."
+            --notes "Android: tải file .apk, mở để cài (cho phép cài từ nguồn không xác định). Mac: tải file mac .zip (arm64 cho chip M, x64 cho Intel), giải nén rồi kéo Trạm Voice Studio vào Applications; lần đầu mở: chuột phải → Open, hoặc Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Vẫn mở."
