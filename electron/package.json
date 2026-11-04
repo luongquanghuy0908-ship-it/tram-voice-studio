@@ -1,0 +1,24 @@
+{
+  "name": "tram-voice-studio",
+  "productName": "Trạm Voice Studio",
+  "version": "1.0.0",
+  "description": "Tạo giọng nói AI bằng API key ElevenLabs của bạn",
+  "author": "Trạm AI Việt",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "vn.tramaiviet.voicestudio",
+    "productName": "Trạm Voice Studio",
+    "artifactName": "TramVoiceStudio-${version}-mac-${arch}.${ext}",
+    "files": ["main.js", "app/**"],
+    "mac": { "category": "public.app-category.productivity", "icon": "app/icon-1024.png", "identity": null },
+    "dmg": { "title": "Trạm Voice Studio" }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "appId": "vn.tramaiviet.voicestudio",
+  "appName": "Trạm Voice",
+  "webDir": "www",
+  "android": { "backgroundColor": "#eef5f3" }
+}

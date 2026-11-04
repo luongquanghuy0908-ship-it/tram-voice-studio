@@ -223,6 +223,16 @@
 
   // ---------- 4. Tạo giọng + kết quả ----------
   let takeCount = 0;
+  // Đang chạy trong app Android (Capacitor) hay không
+  const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  async function saveNative(blob, name) {
+    try {
+      const { Filesystem, Share } = window.Capacitor.Plugins;
+      const base64 = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = fail; r.readAsDataURL(blob); });
+      const saved = await Filesystem.writeFile({ path: name, data: base64, directory: 'CACHE' });
+      await Share.share({ title: name, files: [saved.uri], dialogTitle: 'Lưu hoặc gửi file MP3' });
+    } catch (e) { if (!/cancel/i.test(String(e && e.message))) toast('Không lưu được file: ' + (e && e.message ? e.message : e)); }
+  }
   function addTake(blob, info) {
     const box = $('results'); const empty = box.querySelector('.empty'); if (empty) empty.remove();
     const url = URL.createObjectURL(blob); takeCount++;
@@ -230,7 +240,14 @@
     const el = document.createElement('div'); el.className = 'take';
     el.innerHTML = `<div class="meta">#${takeCount} · ${esc(info)}</div><audio controls src="${url}"></audio>
       <div class="row"><a class="btn primary" href="${url}" download="${name}">⬇ Tải MP3</a></div>`;
-    // Điện thoại: thêm nút Chia sẻ để gửi thẳng qua Zalo/Messenger hoặc lưu vào Tệp
+    // App Android: WebView không tải file bằng thẻ <a download> được -> ghi file rồi mở bảng chia sẻ của máy
+    if (NATIVE) {
+      const a = el.querySelector('a'); a.removeAttribute('download'); a.removeAttribute('href'); a.textContent = '⬇ Lưu / Chia sẻ MP3';
+      a.onclick = () => saveNative(blob, name);
+      box.prepend(el); el.querySelector('audio').play().catch(() => {});
+      return;
+    }
+    // Điện thoại (bản trình duyệt): thêm nút Chia sẻ để gửi thẳng qua Zalo/Messenger hoặc lưu vào Tệp
     const file = new File([blob], name, { type: 'audio/mpeg' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       const share = document.createElement('button'); share.textContent = '↗ Chia sẻ / Lưu';
@@ -263,5 +280,5 @@
   renderKeys(store.get('account', 0));
   if (keys.length) loadVoices();
   // Cài như app (thêm vào màn hình chính) + mở được khi mạng yếu
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capacitor && !navigator.userAgent.includes('Electron')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
