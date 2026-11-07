@@ -64,6 +64,31 @@
     $('keyValue').value = ''; $('keyName').value = '';
     renderKeys(keys.length - 1); toast('Đã lưu key “' + name + '”'); loadVoices();
   };
+  // Nhập hàng loạt: mỗi dòng "key" hoặc "Tên | key" (cũng nhận dấu , ; hoặc tab). Key không có khoảng trắng nên lấy phần cuối dòng.
+  function parseBulk(text) {
+    const out = [];
+    for (const raw of String(text).split(/\r?\n/)) {
+      const line = raw.trim(); if (!line) continue;
+      const m = line.match(/^(?:(.*?)\s*[|,;\t]\s*)?(\S+)$/);
+      if (!m) continue;
+      out.push({ name: (m[1] || '').trim(), key: m[2] });
+    }
+    return out;
+  }
+  $('saveBulk').onclick = () => {
+    const items = parseBulk($('bulkText').value);
+    if (!items.length) return toast('Hãy dán ít nhất một key.');
+    let added = 0, skipped = 0;
+    for (const it of items) {
+      if (keys.some((k) => k.key === it.key)) { skipped++; continue; }
+      keys.push({ name: it.name || 'Tài khoản ' + (keys.length + 1), key: it.key }); added++;
+    }
+    if (added) store.set('keys', keys);
+    $('bulkText').value = '';
+    renderKeys(added ? keys.length - added : undefined);
+    toast('Đã lưu ' + added + ' key' + (skipped ? ', bỏ qua ' + skipped + ' key trùng' : ''));
+    if (added) loadVoices();
+  };
   $('renameKey').onclick = () => {
     const k = current(); if (!k) return;
     const name = prompt('Tên mới cho key:', k.name);
