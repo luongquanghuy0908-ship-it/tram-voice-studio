@@ -1,6 +1,6 @@
 // Service worker: cho phép "Thêm vào màn hình chính" và mở app khi mạng chập chờn.
 // Chỉ lưu các file của app; KHÔNG lưu gì gọi tới ElevenLabs. Sửa app thì tăng số VERSION.
-const VERSION = 'tvs-v7';
+const VERSION = 'tvs-v8';
 const FILES = ['./', 'index.html', 'logic.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

@@ -122,37 +122,43 @@
     });
   };
 
-  // Test key: kiểm tra tất cả key cùng lúc (không tốn credit), cho xóa 1 lần các key hỏng
+  // Xóa các key được tick trong bảng (dùng chung cho Test key và Xem API key)
+  const tail = (k) => k.slice(-4);
+  function deleteTicked() {
+    const drop = new Set([...$('dlgBody').querySelectorAll('input[data-key]:checked')].map((c) => c.dataset.key));
+    if (!drop.size) return toast('Tick chọn key cần xóa trước.');
+    const names = keys.filter((k) => drop.has(k.key)).map((k) => '• ' + k.name + ' (…' + tail(k.key) + ')').join('\n');
+    if (!confirm('Xóa ' + drop.size + ' key khỏi thiết bị này?\n\n' + names)) return;
+    keys = keys.filter((k) => !drop.has(k.key)); store.set('keys', keys);
+    voices = []; renderVoices(); renderKeys(0); closeDialog(); toast('Đã xóa ' + drop.size + ' key');
+  }
+  const tickCell = (k, checked) => `<td><input type="checkbox" data-key="${esc(k.key)}" aria-label="Chọn ${esc(k.name)}"${checked ? ' checked' : ''}></td>`;
+
+  // Test key: xem tài khoản + tạo thử chữ "Hi" cho từng key. Key hỏng được tự tick sẵn để xóa.
   $('testKeys').onclick = async () => {
     if (!keys.length) return toast('Hãy lưu ít nhất một API key.');
     const list = keys.slice();
-    const dead = new Set();
-    const removeDead = () => {
-      if (!dead.size || !confirm('Xóa ' + dead.size + ' key hỏng khỏi thiết bị này?')) return;
-      const n = dead.size;
-      keys = keys.filter((k) => !dead.has(k.key)); store.set('keys', keys);
-      voices = []; renderVoices(); renderKeys(0); closeDialog(); toast('Đã xóa ' + n + ' key hỏng');
-    };
-    openDialog('Test key', '<table><thead><tr><th>Tài khoản</th><th>Tình trạng</th><th>Credit còn lại</th></tr></thead><tbody>' +
-      list.map((k, i) => `<tr id="tk${i}"><td>${esc(k.name)}</td><td colspan="2">Đang kiểm tra…</td></tr>`).join('') +
+    openDialog('Test key', '<table><thead><tr><th></th><th>Tài khoản</th><th>Tình trạng</th><th>Credit còn lại</th></tr></thead><tbody>' +
+      list.map((k, i) => `<tr id="tk${i}">${tickCell(k, false)}<td>${esc(k.name)} <span class="hint">…${esc(tail(k.key))}</span></td><td colspan="2">Đang kiểm tra…</td></tr>`).join('') +
       '</tbody></table><p class="hint" id="tkNote">Đang kiểm tra ' + list.length + ' key (tạo thử chữ “Hi”, mỗi key tốn khoảng 1 credit)…</p>',
-      [{ label: 'Xóa các key hỏng', onClick: removeDead }]);
-    const delBtn = $('dlgFoot').querySelector('button'); delBtn.disabled = true;
-    let ok = 0;
+      [{ label: 'Xóa key đã tick', onClick: deleteTicked }]);
+    let ok = 0, bad = 0;
     await Promise.all(list.map(async (k, i) => {
       const r = await checkKey(k.key);
-      if (r.dead) dead.add(k.key);
+      if (r.dead) bad++;
       if (r.state === 'Tạo giọng OK') ok++;
       const cls = r.dead ? 'danger' : (r.state === 'Tạo giọng OK' ? 'ok-text' : 'warn-text');
       const row = $('tk' + i);
-      if (row) row.innerHTML = `<td>${esc(k.name)}</td><td class="${cls}">${esc(r.state)}</td><td>${r.left == null ? '' : r.left.toLocaleString('vi-VN')}</td>`;
+      if (row) {
+        const box = row.querySelector('input'); if (r.dead) box.checked = true; // tự tick key hỏng
+        row.children[2].outerHTML = `<td class="${cls}">${esc(r.state)}</td><td>${r.left == null ? '' : r.left.toLocaleString('vi-VN')}</td>`;
+      }
     }));
     const note = $('tkNote');
-    if (note) note.textContent = `Xong: ${ok} tạo giọng OK, ${dead.size} hỏng, ${list.length - ok - dead.size} khác (hết credit / lỗi tạm). Mỗi key tốn khoảng 1 credit.`;
-    delBtn.disabled = !dead.size;
+    if (note) note.textContent = `Xong: ${ok} tạo giọng OK, ${bad} hỏng (đã tick sẵn), ${list.length - ok - bad} khác (hết credit / lỗi tạm). Tick thêm hoặc bỏ tick rồi bấm “Xóa key đã tick”.`;
   };
 
-  // Xem API key đã lưu: mặc định che bớt, có nút hiện / sao chép
+  // Xem API key đã lưu: mặc định che bớt, có nút hiện / sao chép / xóa key đã tick
   $('showKeys').onclick = () => {
     if (!keys.length) return toast('Chưa lưu key nào.');
     let shown = false;
@@ -162,14 +168,16 @@
       catch (e) { prompt('Sao chép thủ công:', text); }
     };
     const draw = () => {
-      $('dlgBody').innerHTML = '<table><thead><tr><th>Tài khoản</th><th>API key</th><th></th></tr></thead><tbody>' +
-        keys.map((k, i) => `<tr><td>${esc(k.name)}</td><td style="font-family:monospace;word-break:break-all">${esc(mask(k.key))}</td><td><button class="ghost" data-copy="${i}">Chép</button></td></tr>`).join('') +
-        '</tbody></table><p class="hint">Không gửi key cho người lạ. “Chép tất cả” ra dạng <b>Tên | key</b>, dán được vào “Nhập nhiều key một lần”.</p>';
+      const ticked = new Set([...$('dlgBody').querySelectorAll('input[data-key]:checked')].map((c) => c.dataset.key)); // giữ tick khi bấm Hiện/Ẩn
+      $('dlgBody').innerHTML = '<table><thead><tr><th></th><th>Tài khoản</th><th>API key</th><th></th></tr></thead><tbody>' +
+        keys.map((k, i) => `<tr>${tickCell(k, ticked.has(k.key))}<td>${esc(k.name)}</td><td style="font-family:monospace;word-break:break-all">${esc(mask(k.key))}</td><td><button class="ghost" data-copy="${i}">Chép</button></td></tr>`).join('') +
+        '</tbody></table><p class="hint">Tick key cần xóa rồi bấm “Xóa key đã tick”. “Chép tất cả” ra dạng <b>Tên | key</b>, dán được vào “Nhập nhiều key một lần”. Không gửi key cho người lạ.</p>';
       $('dlgBody').querySelectorAll('[data-copy]').forEach((b) => {
         b.onclick = () => { const k = keys[+b.dataset.copy]; copy(k.key, 'Đã chép key “' + k.name + '”'); };
       });
     };
     openDialog('API key các tài khoản', '', [
+      { label: 'Xóa key đã tick', onClick: deleteTicked },
       { label: 'Hiện key', onClick: (ev) => { shown = !shown; ev.target.textContent = shown ? 'Ẩn key' : 'Hiện key'; draw(); } },
       { label: 'Chép tất cả', primary: true, onClick: () => copy(keys.map((k) => k.name + ' | ' + k.key).join('\n'), 'Đã chép ' + keys.length + ' key') },
     ]);
