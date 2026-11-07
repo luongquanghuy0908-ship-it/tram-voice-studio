@@ -1,6 +1,6 @@
 // Giao diện Trạm Voice Studio bản web. Logic biểu cảm + gọi API nằm ở logic.js (window.TVS).
 (function () {
-  const { AUTO, PAUSES, MODELS, TAG_GROUPS, EMOTIONS, prepare, suggestTag, splitSentences, request, synthesize } = window.TVS;
+  const { AUTO, PAUSES, MODELS, TAG_GROUPS, EMOTIONS, prepare, suggestTag, splitSentences, request, synthesize, checkKey } = window.TVS;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -120,6 +120,36 @@
       } catch (e) { cells = `<td colspan="3" class="danger">${esc(e.message)}</td>`; }
       const row = $('cr' + i); if (row) row.innerHTML = `<td>${esc(k.name)}</td>` + cells;
     });
+  };
+
+  // Test key: kiểm tra tất cả key cùng lúc (không tốn credit), cho xóa 1 lần các key hỏng
+  $('testKeys').onclick = async () => {
+    if (!keys.length) return toast('Hãy lưu ít nhất một API key.');
+    const list = keys.slice();
+    const dead = new Set();
+    const removeDead = () => {
+      if (!dead.size || !confirm('Xóa ' + dead.size + ' key hỏng khỏi thiết bị này?')) return;
+      const n = dead.size;
+      keys = keys.filter((k) => !dead.has(k.key)); store.set('keys', keys);
+      voices = []; renderVoices(); renderKeys(0); closeDialog(); toast('Đã xóa ' + n + ' key hỏng');
+    };
+    openDialog('Test key', '<table><thead><tr><th>Tài khoản</th><th>Tình trạng</th><th>Credit còn lại</th></tr></thead><tbody>' +
+      list.map((k, i) => `<tr id="tk${i}"><td>${esc(k.name)}</td><td colspan="2">Đang kiểm tra…</td></tr>`).join('') +
+      '</tbody></table><p class="hint" id="tkNote">Đang kiểm tra ' + list.length + ' key… Test không tốn credit.</p>',
+      [{ label: 'Xóa các key hỏng', onClick: removeDead }]);
+    const delBtn = $('dlgFoot').querySelector('button'); delBtn.disabled = true;
+    let ok = 0;
+    await Promise.all(list.map(async (k, i) => {
+      const r = await checkKey(k.key);
+      if (r.dead) dead.add(k.key);
+      if (r.state.startsWith('Dùng được')) ok++;
+      const cls = r.dead ? 'danger' : (r.state.startsWith('Dùng được') ? 'ok-text' : 'warn-text');
+      const row = $('tk' + i);
+      if (row) row.innerHTML = `<td>${esc(k.name)}</td><td class="${cls}">${esc(r.state)}</td><td>${r.left == null ? '' : r.left.toLocaleString('vi-VN')}</td>`;
+    }));
+    const note = $('tkNote');
+    if (note) note.textContent = `Xong: ${ok} dùng được, ${dead.size} hỏng, ${list.length - ok - dead.size} khác (hết credit / thiếu quyền / lỗi). Test không tốn credit.`;
+    delBtn.disabled = !dead.size;
   };
 
   // ---------- 2. Giọng ----------

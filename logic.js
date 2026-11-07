@@ -181,5 +181,26 @@
     throw new Error('Không key nào tạo được giọng:\n' + errors.join('\n'));
   }
 
-  root.TVS = { AUTO, PAUSES, MODELS, TAG_GROUPS, EMOTIONS, suggestTag, prepare, splitSentences, request, synthesize, ApiError };
+  // Kiểm tra 1 key mà KHÔNG tốn credit. Trả { state, left (credit còn lại hoặc null), dead (key hỏng) }
+  async function checkKey(key) {
+    try {
+      const d = await (await request(key, '/v1/user/subscription')).json();
+      const left = Math.max(0, (d.character_limit || 0) - (d.character_count || 0));
+      return { state: left > 0 ? 'Dùng được' : 'Hết credit', left, dead: false };
+    } catch (e) {
+      if (!(e instanceof ApiError)) return { state: 'Lỗi mạng, thử lại', left: null, dead: false };
+      const st = e.detail && typeof e.detail === 'object' ? e.detail.status || '' : '';
+      if (st.includes('permission')) {
+        // Key đúng nhưng không bật quyền xem credit -> thử tải danh sách giọng để biết key còn sống
+        try { await request(key, '/v1/voices'); return { state: 'Dùng được (không xem được credit)', left: null, dead: false }; }
+        catch (e2) { return { state: 'Key đúng nhưng thiếu quyền', left: null, dead: false }; }
+      }
+      if (st === 'detected_unusual_activity') return { state: 'Bị ElevenLabs chặn (hoạt động bất thường)', left: null, dead: true };
+      if (e.status === 401) return { state: 'Key sai / đã bị xóa', left: null, dead: true };
+      if (e.status === 429) return { state: 'Gửi quá nhanh, thử lại sau', left: null, dead: false };
+      return { state: 'Lỗi HTTP ' + e.status, left: null, dead: false };
+    }
+  }
+
+  root.TVS = { AUTO, PAUSES, MODELS, TAG_GROUPS, EMOTIONS, suggestTag, prepare, splitSentences, request, synthesize, checkKey, ApiError };
 })(typeof window !== 'undefined' ? window : globalThis);

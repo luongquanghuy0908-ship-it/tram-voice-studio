@@ -34,4 +34,20 @@ await assert.rejects(synthesize([{ name: 'A', key: 'het' }, { name: 'B', key: 's
 // Chỉ 1 key -> trả nguyên lỗi
 await assert.rejects(synthesize([{ name: 'A', key: 'het' }], job), /hết quota/);
 await assert.rejects(synthesize([{ name: 'A', key: 'tot' }], { ...job, model: 'eleven_v3', speed: 1.1 }), /tốc độ/);
+
+// Test key (không tốn credit)
+const { checkKey } = globalThis.TVS;
+globalThis.fetch = async (url, opts) => {
+  const k = opts.headers['xi-api-key'];
+  if (k === 'ok') return new Response(JSON.stringify({ character_limit: 1000, character_count: 400 }), { status: 200 });
+  if (k === 'empty') return new Response(JSON.stringify({ character_limit: 1000, character_count: 1000 }), { status: 200 });
+  if (k === 'noperm' && url.endsWith('/v1/voices')) return new Response('{}', { status: 200 });
+  const st = { noperm: 'missing_permissions', blocked: 'detected_unusual_activity' }[k] || 'invalid_api_key';
+  return new Response(JSON.stringify({ detail: { status: st } }), { status: 401 });
+};
+assert.deepEqual(await checkKey('ok'), { state: 'Dùng được', left: 600, dead: false });
+assert.equal((await checkKey('empty')).state, 'Hết credit');
+assert.equal((await checkKey('noperm')).state, 'Dùng được (không xem được credit)');
+assert.equal((await checkKey('blocked')).dead, true);
+assert.equal((await checkKey('sai')).dead, true);
 console.log('OK: tất cả test logic bản web đều qua');
