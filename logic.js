@@ -164,6 +164,9 @@
     if (!keys.length) throw new Error('Hãy lưu ít nhất một API key.');
     const payload = { text: prepared, model_id: model };
     if (model !== 'eleven_v3') payload.voice_settings = { speed: Math.round(speed * 100) / 100 };
+    // Key nào ElevenLabs báo lỗi (hết quota, key sai, thiếu quyền, bị chặn...) thì chuyển sang key kế tiếp.
+    // Lỗi mạng thì dừng luôn (key khác cũng không gọi được). Chỉ có 1 key thì trả nguyên lỗi.
+    const errors = [];
     for (const account of keys) {
       try {
         const res = await request(account.key, '/v1/text-to-speech/' + encodeURIComponent(voice) + '?output_format=mp3_44100_128', {
@@ -171,11 +174,11 @@
         });
         return { blob: await res.blob(), account: account.name };
       } catch (e) {
-        // Chỉ chuyển sang key tiếp theo khi ElevenLabs xác nhận hết quota
-        if (!(e instanceof ApiError) || !e.detail || e.detail.status !== 'quota_exceeded') throw e;
+        if (!(e instanceof ApiError) || keys.length === 1) throw e;
+        errors.push('• ' + account.name + ': ' + e.message);
       }
     }
-    throw new Error('Tất cả key đã hết quota. Bổ sung credit hoặc thêm key khác.');
+    throw new Error('Không key nào tạo được giọng:\n' + errors.join('\n'));
   }
 
   root.TVS = { AUTO, PAUSES, MODELS, TAG_GROUPS, EMOTIONS, suggestTag, prepare, splitSentences, request, synthesize, ApiError };

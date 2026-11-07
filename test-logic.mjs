@@ -27,7 +27,11 @@ globalThis.fetch = async (url, opts) => {
 const job = { text: 'Xin chào', voice: 'abc', model: 'eleven_multilingual_v2', emotion: 'Tự nhiên', pause: PAUSES[0], speed: 1 };
 const r = await synthesize([{ name: 'A', key: 'het' }, { name: 'B', key: 'tot' }], job);
 assert.equal(r.account, 'B'); assert.deepEqual(calls, ['het', 'tot']);
-await assert.rejects(synthesize([{ name: 'A', key: 'sai' }, { name: 'B', key: 'tot' }], job), /Key sai/);
-await assert.rejects(synthesize([{ name: 'A', key: 'het' }], job), /Tất cả key/);
+// Key sai (lỗi bất kỳ) cũng chuyển sang key kế tiếp
+assert.equal((await synthesize([{ name: 'A', key: 'sai' }, { name: 'B', key: 'tot' }], job)).account, 'B');
+// Tất cả key đều lỗi -> báo lý do từng key
+await assert.rejects(synthesize([{ name: 'A', key: 'het' }, { name: 'B', key: 'sai' }], job), /A: Key đã hết quota[\s\S]*B: Key sai/);
+// Chỉ 1 key -> trả nguyên lỗi
+await assert.rejects(synthesize([{ name: 'A', key: 'het' }], job), /hết quota/);
 await assert.rejects(synthesize([{ name: 'A', key: 'tot' }], { ...job, model: 'eleven_v3', speed: 1.1 }), /tốc độ/);
 console.log('OK: tất cả test logic bản web đều qua');
