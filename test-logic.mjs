@@ -35,19 +35,29 @@ await assert.rejects(synthesize([{ name: 'A', key: 'het' }, { name: 'B', key: 's
 await assert.rejects(synthesize([{ name: 'A', key: 'het' }], job), /hết quota/);
 await assert.rejects(synthesize([{ name: 'A', key: 'tot' }], { ...job, model: 'eleven_v3', speed: 1.1 }), /tốc độ/);
 
-// Test key (không tốn credit)
+// Test key: xem tài khoản rồi tạo thật chữ "Hi"
 const { checkKey } = globalThis.TVS;
+const err = (st) => new Response(JSON.stringify({ detail: { status: st } }), { status: 401 });
+const ttsCalls = [];
 globalThis.fetch = async (url, opts) => {
-  const k = opts.headers['xi-api-key'];
-  if (k === 'ok') return new Response(JSON.stringify({ character_limit: 1000, character_count: 400 }), { status: 200 });
-  if (k === 'empty') return new Response(JSON.stringify({ character_limit: 1000, character_count: 1000 }), { status: 200 });
-  if (k === 'noperm' && url.endsWith('/v1/voices')) return new Response('{}', { status: 200 });
-  const st = { noperm: 'missing_permissions', blocked: 'detected_unusual_activity' }[k] || 'invalid_api_key';
-  return new Response(JSON.stringify({ detail: { status: st } }), { status: 401 });
+  const k = opts.headers['xi-api-key']; const sub = url.endsWith('/v1/user/subscription');
+  if (!sub) ttsCalls.push(url);
+  if (k === 'empty' && sub) return new Response(JSON.stringify({ character_limit: 1000, character_count: 1000 }), { status: 200 });
+  if ((k === 'ok' || k === 'notts' || k === 'flagged') && sub) return new Response(JSON.stringify({ character_limit: 1000, character_count: 400 }), { status: 200 });
+  if (k === 'noperm' && sub) return err('missing_permissions');
+  if (k === 'blocked' && sub) return err('detected_unusual_activity');
+  if (k === 'sai') return err('invalid_api_key');
+  if (k === 'notts') return err('missing_permissions');
+  if (k === 'flagged') return err('detected_unusual_activity');
+  return new Response(new Blob(['mp3']), { status: 200 });
 };
-assert.deepEqual(await checkKey('ok'), { state: 'Dùng được', left: 600, dead: false });
-assert.equal((await checkKey('empty')).state, 'Hết credit');
-assert.equal((await checkKey('noperm')).state, 'Dùng được (không xem được credit)');
+assert.deepEqual(await checkKey('ok'), { state: 'Tạo giọng OK', left: 600, dead: false });
+assert.ok(ttsCalls[0].includes('/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb'));
+assert.deepEqual(await checkKey('empty'), { state: 'Hết credit', left: 0, dead: false });
+assert.equal((await checkKey('noperm')).state, 'Tạo giọng OK');
+assert.deepEqual(await checkKey('notts'), { state: 'Thiếu quyền Text to Speech', left: 600, dead: true });
+// Điểm yếu cũ: còn credit nhưng bị chặn khi tạo giọng -> giờ báo hỏng
+assert.deepEqual(await checkKey('flagged'), { state: 'Bị ElevenLabs chặn khi tạo giọng', left: 600, dead: true });
 assert.equal((await checkKey('blocked')).dead, true);
 assert.equal((await checkKey('sai')).dead, true);
 console.log('OK: tất cả test logic bản web đều qua');

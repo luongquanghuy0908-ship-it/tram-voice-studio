@@ -181,24 +181,44 @@
     throw new Error('Không key nào tạo được giọng:\n' + errors.join('\n'));
   }
 
-  // Kiểm tra 1 key mà KHÔNG tốn credit. Trả { state, left (credit còn lại hoặc null), dead (key hỏng) }
+  const TEST_VOICE = 'JBFqnCBsd6RMkjVDRZzb'; // giọng George có sẵn ở mọi tài khoản ElevenLabs
+  const statusOf = (e) => (e.detail && typeof e.detail === 'object' ? e.detail.status || '' : '');
+
+  // Test 1 key. Bước 1: xem tài khoản (không tốn credit) -> biết key sai / bị chặn / hết credit.
+  // Bước 2: tạo thật chữ "Hi" bằng Flash v2.5 (~1 credit) -> chắc chắn key TẠO GIỌNG được.
+  // Trả { state, left (credit còn lại hoặc null), dead (key hỏng) }
   async function checkKey(key) {
+    let left = null;
     try {
       const d = await (await request(key, '/v1/user/subscription')).json();
-      const left = Math.max(0, (d.character_limit || 0) - (d.character_count || 0));
-      return { state: left > 0 ? 'Dùng được' : 'Hết credit', left, dead: false };
+      left = Math.max(0, (d.character_limit || 0) - (d.character_count || 0));
+      if (left <= 0) return { state: 'Hết credit', left: 0, dead: false };
     } catch (e) {
       if (!(e instanceof ApiError)) return { state: 'Lỗi mạng, thử lại', left: null, dead: false };
-      const st = e.detail && typeof e.detail === 'object' ? e.detail.status || '' : '';
-      if (st.includes('permission')) {
-        // Key đúng nhưng không bật quyền xem credit -> thử tải danh sách giọng để biết key còn sống
-        try { await request(key, '/v1/voices'); return { state: 'Dùng được (không xem được credit)', left: null, dead: false }; }
-        catch (e2) { return { state: 'Key đúng nhưng thiếu quyền', left: null, dead: false }; }
-      }
+      const st = statusOf(e);
       if (st === 'detected_unusual_activity') return { state: 'Bị ElevenLabs chặn (hoạt động bất thường)', left: null, dead: true };
-      if (e.status === 401) return { state: 'Key sai / đã bị xóa', left: null, dead: true };
-      if (e.status === 429) return { state: 'Gửi quá nhanh, thử lại sau', left: null, dead: false };
-      return { state: 'Lỗi HTTP ' + e.status, left: null, dead: false };
+      if (!st.includes('permission')) { // thiếu quyền xem credit thì không sao, vẫn sang bước 2
+        if (e.status === 401) return { state: 'Key sai / đã bị xóa', left: null, dead: true };
+        if (e.status === 429) return { state: 'Gửi quá nhanh, thử lại sau', left: null, dead: false };
+        return { state: 'Lỗi HTTP ' + e.status, left: null, dead: false };
+      }
+    }
+    try {
+      const res = await request(key, '/v1/text-to-speech/' + TEST_VOICE + '?output_format=mp3_22050_32', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'Hi', model_id: 'eleven_flash_v2_5' }),
+      });
+      const blob = await res.blob();
+      if (!blob.size) return { state: 'Không nhận được âm thanh', left, dead: true };
+      return { state: 'Tạo giọng OK', left, dead: false };
+    } catch (e) {
+      if (!(e instanceof ApiError)) return { state: 'Lỗi mạng, thử lại', left, dead: false };
+      const st = statusOf(e);
+      if (st === 'quota_exceeded') return { state: 'Hết credit', left, dead: false };
+      if (st === 'detected_unusual_activity') return { state: 'Bị ElevenLabs chặn khi tạo giọng', left, dead: true };
+      if (st.includes('permission')) return { state: 'Thiếu quyền Text to Speech', left, dead: true };
+      if (e.status === 401) return { state: 'Key sai / đã bị xóa', left, dead: true };
+      if (e.status === 429) return { state: 'Gửi quá nhanh, thử lại sau', left, dead: false };
+      return { state: 'Không tạo được giọng (HTTP ' + e.status + ')', left, dead: true };
     }
   }
 

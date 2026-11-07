@@ -135,21 +135,45 @@
     };
     openDialog('Test key', '<table><thead><tr><th>Tài khoản</th><th>Tình trạng</th><th>Credit còn lại</th></tr></thead><tbody>' +
       list.map((k, i) => `<tr id="tk${i}"><td>${esc(k.name)}</td><td colspan="2">Đang kiểm tra…</td></tr>`).join('') +
-      '</tbody></table><p class="hint" id="tkNote">Đang kiểm tra ' + list.length + ' key… Test không tốn credit.</p>',
+      '</tbody></table><p class="hint" id="tkNote">Đang kiểm tra ' + list.length + ' key (tạo thử chữ “Hi”, mỗi key tốn khoảng 1 credit)…</p>',
       [{ label: 'Xóa các key hỏng', onClick: removeDead }]);
     const delBtn = $('dlgFoot').querySelector('button'); delBtn.disabled = true;
     let ok = 0;
     await Promise.all(list.map(async (k, i) => {
       const r = await checkKey(k.key);
       if (r.dead) dead.add(k.key);
-      if (r.state.startsWith('Dùng được')) ok++;
-      const cls = r.dead ? 'danger' : (r.state.startsWith('Dùng được') ? 'ok-text' : 'warn-text');
+      if (r.state === 'Tạo giọng OK') ok++;
+      const cls = r.dead ? 'danger' : (r.state === 'Tạo giọng OK' ? 'ok-text' : 'warn-text');
       const row = $('tk' + i);
       if (row) row.innerHTML = `<td>${esc(k.name)}</td><td class="${cls}">${esc(r.state)}</td><td>${r.left == null ? '' : r.left.toLocaleString('vi-VN')}</td>`;
     }));
     const note = $('tkNote');
-    if (note) note.textContent = `Xong: ${ok} dùng được, ${dead.size} hỏng, ${list.length - ok - dead.size} khác (hết credit / thiếu quyền / lỗi). Test không tốn credit.`;
+    if (note) note.textContent = `Xong: ${ok} tạo giọng OK, ${dead.size} hỏng, ${list.length - ok - dead.size} khác (hết credit / lỗi tạm). Mỗi key tốn khoảng 1 credit.`;
     delBtn.disabled = !dead.size;
+  };
+
+  // Xem API key đã lưu: mặc định che bớt, có nút hiện / sao chép
+  $('showKeys').onclick = () => {
+    if (!keys.length) return toast('Chưa lưu key nào.');
+    let shown = false;
+    const mask = (k) => (shown || k.length < 12 ? k : k.slice(0, 6) + '•'.repeat(10) + k.slice(-4));
+    const copy = async (text, msg) => {
+      try { await navigator.clipboard.writeText(text); toast(msg); }
+      catch (e) { prompt('Sao chép thủ công:', text); }
+    };
+    const draw = () => {
+      $('dlgBody').innerHTML = '<table><thead><tr><th>Tài khoản</th><th>API key</th><th></th></tr></thead><tbody>' +
+        keys.map((k, i) => `<tr><td>${esc(k.name)}</td><td style="font-family:monospace;word-break:break-all">${esc(mask(k.key))}</td><td><button class="ghost" data-copy="${i}">Chép</button></td></tr>`).join('') +
+        '</tbody></table><p class="hint">Không gửi key cho người lạ. “Chép tất cả” ra dạng <b>Tên | key</b>, dán được vào “Nhập nhiều key một lần”.</p>';
+      $('dlgBody').querySelectorAll('[data-copy]').forEach((b) => {
+        b.onclick = () => { const k = keys[+b.dataset.copy]; copy(k.key, 'Đã chép key “' + k.name + '”'); };
+      });
+    };
+    openDialog('API key các tài khoản', '', [
+      { label: 'Hiện key', onClick: (ev) => { shown = !shown; ev.target.textContent = shown ? 'Ẩn key' : 'Hiện key'; draw(); } },
+      { label: 'Chép tất cả', primary: true, onClick: () => copy(keys.map((k) => k.name + ' | ' + k.key).join('\n'), 'Đã chép ' + keys.length + ' key') },
+    ]);
+    draw();
   };
 
   // ---------- 2. Giọng ----------
