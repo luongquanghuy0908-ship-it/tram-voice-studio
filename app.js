@@ -94,11 +94,16 @@
     const name = prompt('Tên mới cho key:', k.name);
     if (name && name.trim()) { k.name = name.trim(); store.set('keys', keys); renderKeys(); }
   };
+  // Nút Xóa: mở danh sách key có ô tick, tick key nào xóa key đó (key đang dùng được tick sẵn)
   $('deleteKey').onclick = () => {
-    const k = current(); if (!k) return;
-    if (!confirm('Xóa key “' + k.name + '” khỏi thiết bị này?')) return;
-    keys.splice($('account').selectedIndex, 1); store.set('keys', keys); renderKeys(0);
-    voices = []; renderVoices();
+    if (!keys.length) return;
+    const cur = $('account').selectedIndex;
+    openDialog('Chọn key để xóa', '<table><tbody>' +
+      keys.map((k, i) => `<tr>${tickCell(k, i === cur)}<td>${esc(k.name)} <span class="hint">…${esc(tail(k.key))}</span></td></tr>`).join('') +
+      '</tbody></table><p class="hint">Tick các key muốn xóa rồi bấm “Xóa key đã tick”.</p>', [
+      { label: 'Chọn tất cả', onClick: () => $('dlgBody').querySelectorAll('input[data-key]').forEach((c) => { c.checked = true; }) },
+      { label: 'Xóa key đã tick', primary: true, onClick: deleteTicked },
+    ]);
   };
   $('account').onchange = () => { voices = []; renderVoices(); store.set('account', $('account').selectedIndex); };
   $('autoSwitch').checked = store.get('auto', true);
