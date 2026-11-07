@@ -147,15 +147,16 @@
         <button id="saveKey" class="primary">Lưu key</button>
       </div>
       <p class="hint">Lấy key: elevenlabs.io → Developers → API Keys → Create. Bật quyền Text to Speech, Voices và User: Read. Key chỉ lưu trong trình duyệt này, không gửi đi đâu ngoài ElevenLabs.</p>
-      <details id="bulkBox">
-        <summary style="margin-top:12px">Nhập nhiều key một lần</summary>
-        <label for="bulkText">Mỗi dòng một key</label>
-        <textarea id="bulkText" rows="6" placeholder="sk_abc...&#10;Tài khoản phụ | sk_def...&#10;sk_ghi..." autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;font-family:monospace"></textarea>
-        <div class="row" style="margin-top:8px">
-          <button id="saveBulk" class="primary">Lưu tất cả</button>
-        </div>
-        <p class="hint">Dòng chỉ có key thì tự đặt tên “Tài khoản 1, 2…”. Muốn đặt tên: viết <b>Tên | key</b>. Key trùng hoặc đã có sẽ được bỏ qua.</p>
-      </details>
+    </details>
+    <!-- Nằm ngoài "Thêm key mới" để luôn thấy, kể cả khi đã có key -->
+    <details id="bulkBox">
+      <summary style="margin-top:12px">Nhập nhiều key một lần</summary>
+      <label for="bulkText">Mỗi dòng một key</label>
+      <textarea id="bulkText" rows="6" placeholder="sk_abc...&#10;Tài khoản phụ | sk_def...&#10;sk_ghi..." autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;font-family:monospace"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="saveBulk" class="primary">Lưu tất cả</button>
+      </div>
+      <p class="hint">Dòng chỉ có key thì tự đặt tên “Tài khoản 1, 2…”. Muốn đặt tên: viết <b>Tên | key</b>. Key trùng hoặc đã có sẽ được bỏ qua.</p>
     </details>
     <label class="switch"><input id="autoSwitch" type="checkbox" checked> Tự chuyển sang key khác khi key đang dùng bị lỗi (hết quota, key hỏng...)</label>
     <div class="row" style="margin-top:12px">
